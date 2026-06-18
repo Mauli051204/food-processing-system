@@ -73,7 +73,7 @@ def get_tech_dashboard_stats():
     txt_generated = EncryptedFile.objects.exclude(txt_file='').count()
     encrypted = EncryptedFile.objects.exclude(encrypted_file='').count()
     pending_admin_approval = EncryptedFile.objects.filter(status='KEY_REQUESTED').count()
-    completed = EncryptedFile.objects.filter(status__in=['DECRYPTED', 'DOWNLOADED']).count()
+    completed = EncryptedFile.objects.filter(status='DECRYPTED').count()
 
     return {
         'materials_received': received,
@@ -127,7 +127,7 @@ def generate_txt_for_batch(batch_id, tech_user):
             txt_file=relative_txt_path,
             encrypted_file='',
             generated_by=tech_user,
-            status='ENCRYPTED',  # placeholder status; meaningful status set at encrypt step
+            status='TXT_GENERATED',
         )
         encrypted_file_records.append(ef)
 

@@ -4,18 +4,20 @@ from apps.purchase.models import ApprovedMaterial
 
 
 class EncryptedFile(models.Model):
+    PENDING = 'PENDING'
+    TXT_GENERATED = 'TXT_GENERATED'
     ENCRYPTED = 'ENCRYPTED'
     KEY_REQUESTED = 'KEY_REQUESTED'
-    KEY_SHARED = 'KEY_SHARED'
+    KEY_APPROVED = 'KEY_APPROVED'
     DECRYPTED = 'DECRYPTED'
-    DOWNLOADED = 'DOWNLOADED'
 
     STATUS_CHOICES = [
+        (PENDING, 'Pending'),
+        (TXT_GENERATED, 'TXT Generated'),
         (ENCRYPTED, 'Encrypted'),
         (KEY_REQUESTED, 'Key Requested'),
-        (KEY_SHARED, 'Key Shared'),
+        (KEY_APPROVED, 'Key Approved'),
         (DECRYPTED, 'Decrypted'),
-        (DOWNLOADED, 'Downloaded'),
     ]
 
     approved_material = models.OneToOneField(
@@ -32,7 +34,7 @@ class EncryptedFile(models.Model):
         related_name='generated_encrypted_files',
         null=True,
     )
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=ENCRYPTED)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
