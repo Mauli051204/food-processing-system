@@ -20,6 +20,7 @@ urlpatterns = [
     path('api/notifications/', include('apps.notifications.urls')),
     path('api/audit/', include('apps.audit.urls')),
     path('api/dashboard/', include('apps.dashboard.urls')),
+    path('api/admin/', include('apps.admin_panel.urls')),
 
     path('api/test/admin/', AdminTestView.as_view(), name='test-admin'),
     path('api/test/vendor/', VendorTestView.as_view(), name='test-vendor'),

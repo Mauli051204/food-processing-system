@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'apps.notifications',
     'apps.audit',
     'apps.dashboard',
+    'apps.admin_panel',
 ]
 
 MIDDLEWARE = [
