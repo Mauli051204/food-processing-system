@@ -64,3 +64,4 @@ class VendorRequest(models.Model):
 
     def __str__(self):
         return f'{self.vendor.email} - {self.status}'
+

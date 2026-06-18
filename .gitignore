@@ -1,24 +1,20 @@
-# Node
-node_modules/
-.next/
-dist/
-build/
+# Django media uploads
+backend/media/
 
-# Python
+# Django migrations cache
+**/__pycache__/
+
+# Python virtual environments
 venv/
-__pycache__/
-*.pyc
+.venv/
 
-# Environment
+# SQLite databases
+*.sqlite3
+db.sqlite3
+
+# Environment files
 .env
-.env.local
+.env.*
 
-# Logs
-*.log
-
-# VS Code
-.vscode/
-
-# OS
-.DS_Store
-Thumbs.db
+# PyCharm
+.idea/

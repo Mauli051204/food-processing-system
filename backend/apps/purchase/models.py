@@ -98,3 +98,25 @@ class RejectedMaterial(models.Model):
 
     def __str__(self):
         return f'Rejected: {self.material.material_name}'
+    
+class UploadBatch(models.Model):
+    vendor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='upload_batches',
+    )
+    original_filename = models.CharField(max_length=255)
+    stored_file_path = models.CharField(max_length=500)
+    uploaded_rows = models.IntegerField(default=0)
+    imported_rows = models.IntegerField(default=0)
+    rejected_rows = models.IntegerField(default=0)
+    status = models.CharField(max_length=20, default='PENDING')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'upload_batches'
+        verbose_name = 'Upload Batch'
+        verbose_name_plural = 'Upload Batches'
+
+    def __str__(self):
+        return f'{self.original_filename} ({self.vendor.email})'

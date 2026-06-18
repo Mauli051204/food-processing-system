@@ -13,7 +13,7 @@ from apps.accounts.views import (
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('apps.accounts.urls')),
-    path('api/vendors/', include('apps.vendors.urls')),
+    path('api/vendor/', include('apps.vendors.urls')),
     path('api/purchase/', include('apps.purchase.urls')),
     path('api/tech/', include('apps.tech.urls')),
     path('api/production/', include('apps.production.urls')),

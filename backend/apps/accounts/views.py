@@ -3,11 +3,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import login, logout
-
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
 
-from .serializers import LoginSerializer, UserSerializer, VendorRegisterSerializer
+from .serializers import LoginSerializer, UserSerializer
 from .permissions import IsAdmin, IsVendor, IsPurchaseTeam, IsTechTeam, IsProductionTeam
 
 
@@ -85,19 +84,6 @@ class CSRFTokenView(APIView):
 
     def get(self, request):
         return Response({'detail': 'CSRF cookie set'}, status=status.HTTP_200_OK)
-
-class VendorRegisterView(APIView):
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        serializer = VendorRegisterSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-
-        return Response({
-            'success': True,
-            'message': 'Registration successful. Please wait for admin approval.',
-        }, status=status.HTTP_201_CREATED)
 
 
 # ---------------------------------------------------------
