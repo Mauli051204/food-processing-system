@@ -4,13 +4,9 @@ from .views import (
     LogoutView,
     CurrentUserView,
     SessionCheckView,
-    AdminTestView,
-    VendorTestView,
-    PurchaseTestView,
-    TechTestView,
-    ProductionTestView,
+    VendorRegisterView,
+    CSRFTokenView,
 )
-from .views import VendorRegisterView  # kept from Phase 1, not part of Phase 3 scope
 
 urlpatterns = [
     path('login/', LoginView.as_view(), name='login'),
@@ -18,4 +14,5 @@ urlpatterns = [
     path('me/', CurrentUserView.as_view(), name='current-user'),
     path('check-session/', SessionCheckView.as_view(), name='check-session'),
     path('register/vendor/', VendorRegisterView.as_view(), name='vendor-register'),
+    path('csrf/', CSRFTokenView.as_view(), name='csrf-token'),
 ]
