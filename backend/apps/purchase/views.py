@@ -1,3 +1,4 @@
+# C:\Mauli\GradTwin\Project\food-processing-system\backend\apps\purchase\views.py
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
@@ -26,6 +27,9 @@ from .services import (
     approve_material,
     reject_material,
     send_approved_materials_to_tech,
+    get_vendor_approval_trend,
+    get_material_approval_breakdown,
+    get_review_activity_trend,
 )
 from .utils import paginate_queryset
 from apps.vendors.models import VendorRequest
@@ -44,6 +48,32 @@ class PurchaseDashboardView(APIView):
             'recent_requests': VendorRequestListSerializer(recent, many=True).data,
         }, status=status.HTTP_200_OK)
 
+
+
+class VendorApprovalTrendView(APIView):
+    permission_classes = [IsAuthenticated, IsPurchaseTeam]
+
+    def get(self, request):
+        days = int(request.query_params.get('days', 14))
+        trend = get_vendor_approval_trend(days=days)
+        return Response({'success': True, 'data': trend}, status=status.HTTP_200_OK)
+
+
+class MaterialApprovalBreakdownView(APIView):
+    permission_classes = [IsAuthenticated, IsPurchaseTeam]
+
+    def get(self, request):
+        breakdown = get_material_approval_breakdown()
+        return Response({'success': True, 'data': breakdown}, status=status.HTTP_200_OK)
+
+
+class ReviewActivityTrendView(APIView):
+    permission_classes = [IsAuthenticated, IsPurchaseTeam]
+
+    def get(self, request):
+        days = int(request.query_params.get('days', 14))
+        trend = get_review_activity_trend(days=days)
+        return Response({'success': True, 'data': trend}, status=status.HTTP_200_OK)
 
 class VendorRequestsView(APIView):
     permission_classes = [IsAuthenticated, IsPurchaseTeam]

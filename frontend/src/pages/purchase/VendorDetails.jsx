@@ -1,61 +1,71 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { getVendorDetail } from '../../api/purchaseApi';
+import { useParams, useNavigate } from 'react-router-dom';
+import { getVendorDetail } from '../../services/purchaseApi';
+import Loader from '../../components/admin/Loader';
+import ErrorState from '../../components/admin/ErrorState';
 
-function VendorDetails() {
+function VendorDetail() {
   const { vendorId } = useParams();
-  const [vendor, setVendor] = useState(null);
+  const navigate = useNavigate();
+  const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     getVendorDetail(vendorId)
-      .then((res) => setVendor(res.data.data))
+      .then((res) => setDetail(res.data.data))
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, [vendorId]);
 
-  if (loading) return <div className="container mt-5">Loading...</div>;
-  if (!vendor) return <div className="container mt-5 alert alert-danger">Vendor not found.</div>;
+  if (loading) return <Loader />;
+  if (error || !detail) return <ErrorState message="Vendor not found." />;
 
   return (
-    <div className="container mt-5">
-      <h2 className="mb-4">Vendor Details</h2>
+    <div>
+      <button className="btn btn-link ps-0 mb-3" onClick={() => navigate('/purchase/vendor-requests')}>&larr; Back to Vendor Requests</button>
+      <h2 className="mb-4">{detail.full_name}</h2>
 
-      <div className="card mb-4">
-        <div className="card-body">
-          <p><strong>Name:</strong> {vendor.full_name}</p>
-          <p><strong>Email:</strong> {vendor.email}</p>
-          <p><strong>Phone:</strong> {vendor.phone}</p>
-          <p><strong>Company:</strong> {vendor.company_name}</p>
-          <p><strong>Address:</strong> {vendor.address || 'N/A'}</p>
-          <p><strong>Total Materials:</strong> {vendor.total_materials}</p>
-          <p><strong>Imported Rows:</strong> {vendor.imported_rows}</p>
-          <p><strong>Rejected Rows:</strong> {vendor.rejected_rows}</p>
+      <div className="row">
+        <div className="col-md-5">
+          <div className="card mb-3">
+            <div className="card-body">
+              <p><strong>Email:</strong> {detail.email}</p>
+              <p><strong>Phone:</strong> {detail.phone || '-'}</p>
+              <p><strong>Company:</strong> {detail.company_name}</p>
+              <p><strong>Total Materials:</strong> {detail.total_materials}</p>
+              <p><strong>Imported Rows:</strong> {detail.imported_rows}</p>
+              <p><strong>Rejected Rows:</strong> {detail.rejected_rows}</p>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-7">
+          <div className="card">
+            <div className="card-body">
+              <h5 className="card-title">Upload History</h5>
+              {detail.upload_history.length === 0 ? (
+                <p className="text-muted">No uploads yet.</p>
+              ) : (
+                <table className="table table-sm">
+                  <thead><tr><th>File</th><th>Date</th><th>Imported</th><th>Rejected</th></tr></thead>
+                  <tbody>
+                    {detail.upload_history.map((h, i) => (
+                      <tr key={i}>
+                        <td>{h.file_name}</td>
+                        <td className="text-muted small">{new Date(h.uploaded_at).toLocaleDateString()}</td>
+                        <td className="text-success">{h.rows_imported}</td>
+                        <td className="text-danger">{h.rows_rejected}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
         </div>
       </div>
-
-      <h4>Upload History</h4>
-      <table className="table table-striped">
-        <thead>
-          <tr>
-            <th>File Name</th>
-            <th>Uploaded</th>
-            <th>Imported</th>
-            <th>Rejected</th>
-          </tr>
-        </thead>
-        <tbody>
-          {vendor.upload_history.map((h, idx) => (
-            <tr key={idx}>
-              <td>{h.file_name}</td>
-              <td>{new Date(h.uploaded_at).toLocaleString()}</td>
-              <td>{h.rows_imported}</td>
-              <td>{h.rows_rejected}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }
 
-export default VendorDetails;
+export default VendorDetail;

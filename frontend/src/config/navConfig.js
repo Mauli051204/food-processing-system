@@ -18,18 +18,19 @@ export const NAV_CONFIG = {
       { to: 'statistics', label: 'Statistics', icon: FiBarChart2 },
     ],
   },
-  purchase: {
+    purchase: {
     label: 'Purchase Panel',
     basePath: '/purchase',
     items: [
-      { to: 'dashboard', label: 'Dashboard', icon: FiGrid },
-      { to: 'vendor-requests', label: 'Vendor Requests', icon: FiUsers },
-      { to: 'material-review', label: 'Material Review', icon: FiPackage },
-      { to: 'approved-materials', label: 'Approved Materials', icon: FiCheckCircle },
-      { to: 'rejected-materials', label: 'Rejected Materials', icon: FiXCircle },
-      { to: 'notifications', label: 'Notifications', icon: FiBell },
+        { to: 'dashboard', label: 'Dashboard', icon: FiGrid },
+        { to: 'vendor-requests', label: 'Vendor Requests', icon: FiUsers },
+        { to: 'material-review', label: 'Material Review', icon: FiPackage },
+        { to: 'approved-materials', label: 'Approved Materials', icon: FiCheckCircle },
+        { to: 'rejected-materials', label: 'Rejected Materials', icon: FiXCircle },
+        { to: 'notifications', label: 'Notifications', icon: FiBell },
+        { to: 'statistics', label: 'Statistics', icon: FiBarChart2 },
     ],
-  },
+    },
   tech: {
     label: 'Tech Panel',
     basePath: '/tech',

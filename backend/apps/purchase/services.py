@@ -52,6 +52,113 @@ def get_recent_requests():
     return results
 
 
+
+def get_vendor_approval_trend(days=14):
+    """
+    Daily counts of vendor requests by status (approved/rejected) over
+    the last `days` days, for the Vendor Approval Trend line chart.
+    Zero-filled for continuity, same pattern as Vendor's upload trend.
+    """
+    from django.utils import timezone
+    from django.db.models.functions import TruncDate
+    from django.db.models import Count
+    import datetime
+
+    today = timezone.now().date()
+    start_date = today - datetime.timedelta(days=days - 1)
+
+    raw = (
+        VendorRequest.objects.filter(requested_at__date__gte=start_date)
+        .annotate(day=TruncDate('requested_at'))
+        .values('day', 'status')
+        .annotate(count=Count('id'))
+        .order_by('day')
+    )
+
+    by_day = {}
+    for row in raw:
+        day = row['day']
+        by_day.setdefault(day, {'approved': 0, 'rejected': 0, 'pending': 0})
+        if row['status'] == VendorRequest.APPROVED:
+            by_day[day]['approved'] = row['count']
+        elif row['status'] == VendorRequest.REJECTED:
+            by_day[day]['rejected'] = row['count']
+        elif row['status'] == VendorRequest.PENDING:
+            by_day[day]['pending'] = row['count']
+
+    result = []
+    for i in range(days):
+        day = start_date + datetime.timedelta(days=i)
+        counts = by_day.get(day, {'approved': 0, 'rejected': 0, 'pending': 0})
+        result.append({'date': day.isoformat(), **counts})
+
+    return result
+
+
+def get_material_approval_breakdown():
+    """
+    Counts of materials by their purchase-decision outcome, for the
+    Material Approval / Approval vs Rejection pie chart. Distinct from
+    Material.status (which only tracks vendor-side PENDING/APPROVED/
+    REJECTED) — this reflects the actual ApprovedMaterial/RejectedMaterial
+    decision tables.
+    """
+    pending_review = Material.objects.filter(status=Material.APPROVED).exclude(
+        id__in=ApprovedMaterial.objects.values_list('material_id', flat=True)
+    ).exclude(
+        id__in=RejectedMaterial.objects.values_list('material_id', flat=True)
+    ).count()
+
+    approved = ApprovedMaterial.objects.count()
+    rejected = RejectedMaterial.objects.count()
+
+    return [
+        {'label': 'Pending Review', 'value': pending_review},
+        {'label': 'Approved', 'value': approved},
+        {'label': 'Rejected', 'value': rejected},
+    ]
+
+
+def get_review_activity_trend(days=14):
+    """
+    Daily counts of approve/reject actions over the last `days` days,
+    for the Review Activity / Monthly Reviews chart.
+    """
+    from django.utils import timezone
+    from django.db.models.functions import TruncDate
+    from django.db.models import Count
+    import datetime
+
+    today = timezone.now().date()
+    start_date = today - datetime.timedelta(days=days - 1)
+
+    approved_raw = (
+        ApprovedMaterial.objects.filter(approved_at__date__gte=start_date)
+        .annotate(day=TruncDate('approved_at'))
+        .values('day')
+        .annotate(count=Count('id'))
+    )
+    rejected_raw = (
+        RejectedMaterial.objects.filter(rejected_at__date__gte=start_date)
+        .annotate(day=TruncDate('rejected_at'))
+        .values('day')
+        .annotate(count=Count('id'))
+    )
+
+    approved_by_day = {row['day']: row['count'] for row in approved_raw}
+    rejected_by_day = {row['day']: row['count'] for row in rejected_raw}
+
+    result = []
+    for i in range(days):
+        day = start_date + datetime.timedelta(days=i)
+        result.append({
+            'date': day.isoformat(),
+            'approved': approved_by_day.get(day, 0),
+            'rejected': rejected_by_day.get(day, 0),
+        })
+
+    return result
+
 def get_pending_materials_for_vendor(vendor_id=None):
     """
     Materials that the vendor has sent (status=APPROVED, vendor-side meaning

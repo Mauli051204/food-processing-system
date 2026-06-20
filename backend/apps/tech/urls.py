@@ -1,3 +1,4 @@
+# C:\Mauli\GradTwin\Project\food-processing-system\backend\apps\tech\urls.py
 from django.urls import path
 from .views import (
     TechDashboardView,

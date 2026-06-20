@@ -1,3 +1,4 @@
+# C:\Mauli\GradTwin\Project\food-processing-system\backend\apps\tech\views.py
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
