@@ -20,6 +20,8 @@ from .services import (
     get_vendor_dashboard_stats,
     get_upload_history,
     send_materials_to_purchase,
+    get_upload_trend,
+    get_material_status_breakdown,
 )
 from .utils import format_upload_summary
 from .models import VendorProfile
@@ -46,6 +48,25 @@ class VendorDashboardView(APIView):
     def get(self, request):
         stats = get_vendor_dashboard_stats(request.user)
         return Response({'success': True, 'data': stats}, status=status.HTTP_200_OK)
+
+
+
+class VendorUploadTrendView(APIView):
+    permission_classes = [IsAuthenticated, IsApprovedVendor]
+
+    def get(self, request):
+        days = int(request.query_params.get('days', 14))
+        trend = get_upload_trend(request.user, days=days)
+        return Response({'success': True, 'data': trend}, status=status.HTTP_200_OK)
+
+
+class VendorMaterialStatusView(APIView):
+    permission_classes = [IsAuthenticated, IsApprovedVendor]
+
+    def get(self, request):
+        breakdown = get_material_status_breakdown(request.user)
+        return Response({'success': True, 'data': breakdown}, status=status.HTTP_200_OK)
+    
 
 
 class VendorUploadView(APIView):

@@ -69,6 +69,7 @@ class VendorProfileSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(source='user.email', read_only=True)
     full_name = serializers.SerializerMethodField()
     phone = serializers.CharField(source='user.phone', read_only=True)
+    is_approved = serializers.BooleanField(source='user.is_approved', read_only=True)
 
     class Meta:
         model = VendorProfile

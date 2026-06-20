@@ -18,11 +18,14 @@ function Login() {
       await ensureCsrf();
       const res = await login(email, password);
       const role = res.data.role;
-      if (role === 'admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/');
-      }
+      const roleRedirects = {
+        admin: '/admin/dashboard',
+        vendor: '/vendor/dashboard',
+        purchase: '/purchase/dashboard',
+        tech: '/tech/dashboard',
+        production: '/production/dashboard',
+      };
+      navigate(roleRedirects[role] || '/');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed.');
     } finally {

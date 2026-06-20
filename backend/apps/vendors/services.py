@@ -114,6 +114,60 @@ def get_vendor_dashboard_stats(vendor):
     }
 
 
+
+def get_upload_trend(vendor, days=14):
+    """
+    Returns upload counts grouped by day for the last `days` days,
+    for the Vendor dashboard's Upload Trend line chart. Days with zero
+    uploads are included with a count of 0, so the chart has a
+    continuous x-axis rather than gaps.
+    """
+    from django.utils import timezone
+    from django.db.models.functions import TruncDate
+    from django.db.models import Count
+    import datetime
+
+    today = timezone.now().date()
+    start_date = today - datetime.timedelta(days=days - 1)
+
+    raw_counts = (
+        UploadBatch.objects.filter(vendor=vendor, created_at__date__gte=start_date)
+        .annotate(day=TruncDate('created_at'))
+        .values('day')
+        .annotate(count=Count('id'))
+        .order_by('day')
+    )
+    counts_by_day = {row['day']: row['count'] for row in raw_counts}
+
+    result = []
+    for i in range(days):
+        day = start_date + datetime.timedelta(days=i)
+        result.append({
+            'date': day.isoformat(),
+            'count': counts_by_day.get(day, 0),
+        })
+
+    return result
+
+
+
+def get_material_status_breakdown(vendor):
+    """
+    Returns counts of materials by status for the Vendor dashboard's
+    Material Status pie chart. Distinct from get_vendor_dashboard_stats
+    since this is specifically shaped for chart consumption (a flat
+    list of {label, value} pairs) rather than dashboard cards.
+    """
+    materials = Material.objects.filter(vendor=vendor)
+
+    return [
+        {'label': 'Pending', 'value': materials.filter(status=Material.PENDING).count()},
+        {'label': 'Sent to Purchase', 'value': materials.filter(status=Material.APPROVED).count()},
+        {'label': 'Rejected', 'value': materials.filter(status=Material.REJECTED).count()},
+    ]
+
+    
+
 def get_upload_history(vendor):
     """
     Returns one entry per upload batch, with accurate imported/rejected
