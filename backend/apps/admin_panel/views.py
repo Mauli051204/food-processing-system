@@ -4,7 +4,6 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.shortcuts import get_object_or_404
-from django.http import Http404
 
 from .permissions import IsAdmin
 from .serializers import (
@@ -38,6 +37,13 @@ from .utils import paginate_queryset
 from .reports import export_csv, export_excel, export_pdf
 from apps.accounts.models import User
 from apps.production.models import KeyRequest
+
+from apps.production.services.key_request_service import (
+    approve_key_request,
+    reject_key_request,
+    KeyRequestNotFound,
+    KeyRequestAlreadyProcessed,
+)
 
 
 class AdminDashboardView(APIView):
@@ -148,25 +154,53 @@ class AdminKeyRequestsView(APIView):
 
 
 class AdminKeyRequestApproveView(APIView):
+    """
+    Thin view. Delegates entirely to the shared
+    apps.production.services.key_request_service.approve_key_request.
+    No business logic lives here, and this view never imports or
+    instantiates anything from apps.production.views.
+    """
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def post(self, request, key_request_id):
-        from apps.production.views import AdminKeyRequestActionView as ProductionAdminAction
-        request.data['action'] = 'approve'
-        view = ProductionAdminAction()
-        view.request = request
-        return view.post(request, key_request_id)
+        try:
+            approve_key_request(key_request_id, request.user)
+        except KeyRequestNotFound as exc:
+            message = exc.messages[0] if hasattr(exc, 'messages') else str(exc)
+            return Response({'success': False, 'message': message}, status=status.HTTP_404_NOT_FOUND)
+        except KeyRequestAlreadyProcessed as exc:
+            message = exc.messages[0] if hasattr(exc, 'messages') else str(exc)
+            return Response({'success': False, 'message': message}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            'success': True,
+            'message': 'Key request approved successfully.',
+        }, status=status.HTTP_200_OK)
 
 
 class AdminKeyRequestRejectView(APIView):
+    """
+    Thin view. Delegates entirely to the shared
+    apps.production.services.key_request_service.reject_key_request.
+    """
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def post(self, request, key_request_id):
-        from apps.production.views import AdminKeyRequestActionView as ProductionAdminAction
-        request.data['action'] = 'reject'
-        view = ProductionAdminAction()
-        view.request = request
-        return view.post(request, key_request_id)
+        reason = request.data.get('reason', '')
+
+        try:
+            reject_key_request(key_request_id, request.user, reason=reason)
+        except KeyRequestNotFound as exc:
+            message = exc.messages[0] if hasattr(exc, 'messages') else str(exc)
+            return Response({'success': False, 'message': message}, status=status.HTTP_404_NOT_FOUND)
+        except KeyRequestAlreadyProcessed as exc:
+            message = exc.messages[0] if hasattr(exc, 'messages') else str(exc)
+            return Response({'success': False, 'message': message}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            'success': True,
+            'message': 'Key request rejected successfully.',
+        }, status=status.HTTP_200_OK)
 
 
 class AdminEncryptionHistoryView(APIView):

@@ -16,7 +16,7 @@ from .serializers import (
     ProductionHistorySerializer,
     ApproveRejectKeyRequestSerializer,
 )
-from .services import (
+from .services.production_services import (
     get_production_dashboard_stats,
     get_available_encrypted_files,
     request_key,
@@ -26,6 +26,12 @@ from .services import (
     record_download,
     get_download_history,
     get_production_history,
+)
+from .services.key_request_service import (
+    approve_key_request,
+    reject_key_request,
+    KeyRequestNotFound,
+    KeyRequestAlreadyProcessed,
 )
 from .utils import get_client_ip
 from apps.tech.models import EncryptedFile
@@ -171,80 +177,32 @@ class ProductionHistoryView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-# ---------------------------------------------------------
-# Minimal Admin-side approval endpoint (Admin module not yet
-# built as a separate app; this is the smallest integration
-# point needed for Production's workflow to function end-to-end)
-# ---------------------------------------------------------
-
 class AdminKeyRequestActionView(APIView):
+    """
+    Thin view. All approval/rejection business logic lives in
+    apps.production.services.key_request_service — this view's only
+    job is to parse the request, call the shared service, and translate
+    the result (or exception) into an HTTP response.
+    """
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def post(self, request, key_request_id):
-        from django.utils import timezone
-        from apps.audit.models import AuditLog
-        from apps.notifications.models import Notification
-
-        key_request = get_object_or_404(KeyRequest, id=key_request_id)
         serializer = ApproveRejectKeyRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         action = serializer.validated_data['action']
+        reason = request.data.get('reason', '')
 
-        if key_request.status != KeyRequest.PENDING:
-            return Response(
-                {'success': False, 'message': 'This key request has already been processed.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        encrypted_file = key_request.encrypted_file
-
-        if action == 'approve':
-            key_request.status = KeyRequest.APPROVED
-            key_request.approved_by = request.user
-            key_request.approved_at = timezone.now()
-            key_request.save()
-
-            encrypted_file.status = 'KEY_APPROVED'
-            encrypted_file.save(update_fields=['status'])
-
-            from apps.tech.models import AESKey
-            AESKey.objects.filter(encrypted_file=encrypted_file).update(sent_to_admin=True)
-
-            AuditLog.objects.create(
-                user=request.user,
-                role='ADMIN',
-                action='KEY_REQUEST_APPROVED',
-                description=f'Key request #{key_request.id} approved for EncryptedFile #{encrypted_file.id}.',
-            )
-
-            Notification.objects.create(
-                user=key_request.requested_by,
-                title='Key Request Approved',
-                message=f'Your key request for batch #{encrypted_file.id} has been approved.',
-                notification_type='KEY_REQUEST_APPROVED',
-                related_object_id=key_request.id,
-            )
-        else:
-            key_request.status = KeyRequest.REJECTED
-            key_request.save()
-
-            encrypted_file.status = 'ENCRYPTED'
-            encrypted_file.save(update_fields=['status'])
-
-            AuditLog.objects.create(
-                user=request.user,
-                role='ADMIN',
-                action='KEY_REQUEST_REJECTED',
-                description=f'Key request #{key_request.id} rejected for EncryptedFile #{encrypted_file.id}.',
-            )
-
-            Notification.objects.create(
-                user=key_request.requested_by,
-                title='Key Request Rejected',
-                message=f'Your key request for batch #{encrypted_file.id} has been rejected.',
-                notification_type='KEY_REQUEST_REJECTED',
-                related_object_id=key_request.id,
-            )
+        try:
+            if action == 'approve':
+                approve_key_request(key_request_id, request.user)
+            else:
+                reject_key_request(key_request_id, request.user, reason=reason)
+        except (KeyRequestNotFound,) as exc:
+            message = exc.messages[0] if hasattr(exc, 'messages') else str(exc)
+            return Response({'success': False, 'message': message}, status=status.HTTP_404_NOT_FOUND)
+        except (KeyRequestAlreadyProcessed,) as exc:
+            message = exc.messages[0] if hasattr(exc, 'messages') else str(exc)
+            return Response({'success': False, 'message': message}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({
             'success': True,

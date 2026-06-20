@@ -8,14 +8,14 @@ from apps.audit.models import AuditLog
 from apps.notifications.models import Notification
 from apps.accounts.models import User
 
-from .crypto import unwrap_aes_key, decrypt_file_to_bytes
-from .validators import (
+from apps.production.crypto import unwrap_aes_key, decrypt_file_to_bytes
+from apps.production.validators import (
     validate_encrypted_file_available,
     validate_no_duplicate_key_request,
     validate_key_request_approved,
     validate_not_already_decrypted,
 )
-from .utils import media_path, ensure_dir, build_decrypted_filename
+from apps.production.utils import media_path, ensure_dir, build_decrypted_filename
 
 
 def get_production_dashboard_stats():
@@ -116,8 +116,6 @@ def decrypt_batch(encrypted_file, production_user):
         raw_key = unwrap_aes_key(aes_key_record.key_value_encrypted)
         plaintext = decrypt_file_to_bytes(full_encrypted_path, raw_key, aes_key_record.iv)
     finally:
-        # Explicitly drop the reference so the raw key doesn't linger
-        # in memory any longer than necessary for this operation.
         raw_key = None
 
     decrypted_filename = build_decrypted_filename(encrypted_file.id)
@@ -191,11 +189,6 @@ def get_download_history(production_user=None, search=None):
 
 
 def get_production_history(production_user):
-    """
-    Combines KeyRequest lifecycle with download status for the
-    'Production History' view — one row per key request, joined
-    with whether a download has happened for that batch.
-    """
     key_requests = KeyRequest.objects.filter(requested_by=production_user).select_related(
         'encrypted_file__approved_material__material__vendor'
     ).order_by('-requested_at')
