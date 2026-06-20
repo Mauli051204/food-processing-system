@@ -5,7 +5,7 @@ from django.utils import timezone
 from .models import Material, ApprovedMaterial, RejectedMaterial, UploadBatch
 from apps.vendors.models import VendorRequest
 from apps.audit.models import AuditLog
-from apps.notifications.models import Notification
+from apps.common.services.notification_service import notify, notify_many
 
 
 def get_purchase_dashboard_stats():
@@ -129,7 +129,7 @@ def approve_material(material, purchase_user, edited_quantity=None, edited_cost=
         description=f'Material #{material.id} ({material.material_name}) approved. Remarks: {remarks or "none"}.',
     )
 
-    Notification.objects.create(
+    notify(
         user=material.vendor,
         title='Material Approved',
         message=f'Your material "{material.material_name}" has been approved by the Purchase Team.',
@@ -166,7 +166,7 @@ def reject_material(material, purchase_user, reason):
         description=f'Material #{material.id} ({material.material_name}) rejected. Reason: {reason}.',
     )
 
-    Notification.objects.create(
+    notify(
         user=material.vendor,
         title='Material Rejected',
         message=f'Your material "{material.material_name}" was rejected. Reason: {reason}.',
@@ -203,12 +203,11 @@ def send_approved_materials_to_tech(purchase_user, approved_material_ids):
 
     from apps.accounts.models import User
     tech_users = User.objects.filter(role__name='TECH', is_active=True)
-    for tech_user in tech_users:
-        Notification.objects.create(
-            user=tech_user,
-            title='New Materials for Encryption',
-            message=f'{count} approved material(s) have been sent to Tech for processing.',
-            notification_type='TECH_NEW_MATERIALS',
-        )
+    notify_many(
+        users=tech_users,
+        title='New Materials for Encryption',
+        message=f'{count} approved material(s) have been sent to Tech for processing.',
+        notification_type='TECH_NEW_MATERIALS',
+    )
 
     return count

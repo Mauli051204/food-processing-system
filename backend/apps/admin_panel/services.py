@@ -9,6 +9,7 @@ from apps.tech.models import EncryptedFile, AESKey
 from apps.production.models import KeyRequest, DownloadHistory
 from apps.audit.models import AuditLog
 from apps.notifications.models import Notification
+from apps.common.services.notification_service import notify
 
 from .validators import validate_user_pending_approval, validate_user_not_admin
 from .utils import get_user_display_name
@@ -131,7 +132,7 @@ def approve_user(user, admin_user):
         description=f'User {user.email} ({user.role}) approved.',
     )
 
-    Notification.objects.create(
+    notify(
         user=user,
         title='Account Approved',
         message='Your account has been approved. You can now log in.',
@@ -156,7 +157,7 @@ def reject_user(user, admin_user, reason=''):
         description=f'User {user.email} ({user.role}) rejected. Reason: {reason or "none"}.',
     )
 
-    Notification.objects.create(
+    notify(
         user=user,
         title='Account Rejected',
         message=f'Your account registration was rejected. {("Reason: " + reason) if reason else ""}',
@@ -194,7 +195,7 @@ def deactivate_user(user, admin_user):
         description=f'User {user.email} deactivated.',
     )
 
-    Notification.objects.create(
+    notify(
         user=user,
         title='Account Deactivated',
         message='Your account has been deactivated by an administrator.',
@@ -245,6 +246,15 @@ def get_audit_logs(search=None, user_filter=None, action_filter=None, date_from=
 
 
 def get_all_notifications(read_filter=None):
+    """
+    Admin-only: lists notifications ACROSS ALL USERS, not scoped to the
+    requesting admin. This is intentionally different from
+    notification_service.get_notifications_for_user(), which is
+    per-user by design. Admin needs system-wide visibility; this
+    function stays in admin_panel/services.py rather than the shared
+    service since it's an Admin-specific concern, not a general
+    notification-retrieval concern.
+    """
     queryset = Notification.objects.select_related('user').order_by('-created_at')
 
     if read_filter == 'read':

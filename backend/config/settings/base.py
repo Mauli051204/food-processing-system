@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'apps.tech',
     'apps.production',
     'apps.encryption',
+    'apps.common',
     'apps.notifications',
     'apps.audit',
     'apps.dashboard',

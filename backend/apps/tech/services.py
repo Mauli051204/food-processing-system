@@ -6,19 +6,14 @@ from apps.purchase.models import ApprovedMaterial
 from apps.tech.models import EncryptedFile
 from apps.encryption.models import EncryptionHistory
 from apps.audit.models import AuditLog
-from apps.notifications.models import Notification
 from apps.accounts.models import User
+from apps.common.services.notification_service import notify_many
 
 from .crypto import generate_aes_key, wrap_aes_key, encrypt_file
 from .utils import get_batch_id_for_approved_material, build_txt_filename, build_encrypted_filename, ensure_dir, media_path
 
 
 def get_received_materials():
-    """
-    ApprovedMaterial rows that Purchase has sent to Tech
-    (sent_to_tech=True) but encryption hasn't started yet
-    (no EncryptedFile linked).
-    """
     return ApprovedMaterial.objects.filter(
         sent_to_tech=True,
     ).exclude(
@@ -56,12 +51,6 @@ def get_batch_materials(batch_id):
 
 
 def get_batch_materials_including_in_progress(batch_id):
-    """
-    Like get_batch_materials, but does NOT exclude materials that
-    already have an EncryptedFile — used when looking up a batch
-    for the encrypt step, after TXT generation already created
-    EncryptedFile rows for it.
-    """
     all_approved = ApprovedMaterial.objects.filter(sent_to_tech=True).select_related(
         'material', 'material__vendor', 'purchase_user'
     )
@@ -86,12 +75,6 @@ def get_tech_dashboard_stats():
 
 @transaction.atomic
 def generate_txt_for_batch(batch_id, tech_user):
-    """
-    Generates one TXT file listing all materials in the given batch,
-    and creates one EncryptedFile row per material in that batch
-    (sharing the same txt_file path) with encrypted_file left blank
-    until the encrypt step runs.
-    """
     batch_materials = get_batch_materials(batch_id)
 
     if not batch_materials:
@@ -212,14 +195,13 @@ def encrypt_batch(batch_id, tech_user):
     )
 
     admin_users = User.objects.filter(role__name='ADMIN', is_active=True)
-    for admin_user in admin_users:
-        Notification.objects.create(
-            user=admin_user,
-            title='Key Approval Needed',
-            message='New encrypted batch is waiting for key approval.',
-            notification_type='KEY_APPROVAL_NEEDED',
-            related_object_id=aes_key_record.id,
-        )
+    notify_many(
+        users=admin_users,
+        title='Key Approval Needed',
+        message='New encrypted batch is waiting for key approval.',
+        notification_type='KEY_APPROVAL_NEEDED',
+        related_object_id=aes_key_record.id,
+    )
 
     return {
         'batch_id': batch_id,
