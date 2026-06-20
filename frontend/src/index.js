@@ -1,3 +1,4 @@
+// C:\Mauli\GradTwin\Project\food-processing-system\frontend\src\index.js
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
