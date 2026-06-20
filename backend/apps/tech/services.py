@@ -131,12 +131,6 @@ def generate_txt_for_batch(batch_id, tech_user):
 
 @transaction.atomic
 def encrypt_batch(batch_id, tech_user):
-    """
-    Encrypts the TXT file for the given batch using AES-256-CBC,
-    generates and wraps a unique AES key, updates all EncryptedFile
-    rows for the batch, creates an EncryptionHistory entry, and
-    notifies all Admin users.
-    """
     from apps.tech.models import AESKey
 
     batch_materials = get_batch_materials_including_in_progress(batch_id)
@@ -224,3 +218,78 @@ def get_encryption_history(search=None, vendor_id=None, status_filter=None):
         queryset = queryset.filter(status=status_filter.upper())
 
     return queryset
+
+
+def get_encryption_trend(days=14):
+    """
+    Daily counts of TXT-generated vs encrypted events over the last
+    `days` days, for the Daily Encryption Trend line chart.
+    """
+    from django.utils import timezone
+    from django.db.models.functions import TruncDate
+    from django.db.models import Count
+    import datetime
+
+    today = timezone.now().date()
+    start_date = today - datetime.timedelta(days=days - 1)
+
+    generated_raw = (
+        EncryptedFile.objects.filter(created_at__date__gte=start_date)
+        .annotate(day=TruncDate('created_at'))
+        .values('day')
+        .annotate(count=Count('id'))
+    )
+    encrypted_raw = (
+        EncryptionHistory.objects.filter(action='ENCRYPTED', performed_at__date__gte=start_date)
+        .annotate(day=TruncDate('performed_at'))
+        .values('day')
+        .annotate(count=Count('id'))
+    )
+
+    generated_by_day = {row['day']: row['count'] for row in generated_raw}
+    encrypted_by_day = {row['day']: row['count'] for row in encrypted_raw}
+
+    result = []
+    for i in range(days):
+        day = start_date + datetime.timedelta(days=i)
+        result.append({
+            'date': day.isoformat(),
+            'generated': generated_by_day.get(day, 0),
+            'encrypted': encrypted_by_day.get(day, 0),
+        })
+
+    return result
+
+
+def get_encryption_status_breakdown():
+    """
+    Counts of EncryptedFile rows grouped by status, for the
+    Encryption Status Breakdown pie chart.
+    """
+    statuses = ['TXT_GENERATED', 'ENCRYPTED', 'KEY_REQUESTED', 'KEY_APPROVED', 'DECRYPTED']
+    return [
+        {'label': s.replace('_', ' ').title(), 'value': EncryptedFile.objects.filter(status=s).count()}
+        for s in statuses
+    ]
+
+
+def get_tech_statistics():
+    """
+    Cards for the Tech Statistics page: total encryptions, today's
+    encryptions, pending vs completed.
+    """
+    from django.utils import timezone
+
+    today = timezone.now().date()
+
+    total_encryptions = EncryptedFile.objects.exclude(encrypted_file='').count()
+    todays_encryptions = EncryptionHistory.objects.filter(action='ENCRYPTED', performed_at__date=today).count()
+    pending_files = EncryptedFile.objects.filter(status='TXT_GENERATED').count()
+    completed_files = EncryptedFile.objects.filter(status='DECRYPTED').count()
+
+    return {
+        'total_encryptions': total_encryptions,
+        'todays_encryptions': todays_encryptions,
+        'pending_files': pending_files,
+        'completed_files': completed_files,
+    }

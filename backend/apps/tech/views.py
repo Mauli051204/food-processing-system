@@ -18,6 +18,9 @@ from .services import (
     generate_txt_for_batch,
     encrypt_batch,
     get_encryption_history,
+    get_encryption_trend,
+    get_encryption_status_breakdown,
+    get_tech_statistics,
 )
 from .utils import media_path
 from apps.tech.models import EncryptedFile
@@ -34,6 +37,31 @@ class TechDashboardView(APIView):
             'stats': stats,
             'recent_encryptions': EncryptedFileSerializer(recent, many=True).data,
         }, status=status.HTTP_200_OK)
+
+
+class EncryptionTrendView(APIView):
+    permission_classes = [IsAuthenticated, IsTechTeam]
+
+    def get(self, request):
+        days = int(request.query_params.get('days', 14))
+        trend = get_encryption_trend(days=days)
+        return Response({'success': True, 'data': trend}, status=status.HTTP_200_OK)
+
+
+class EncryptionStatusBreakdownView(APIView):
+    permission_classes = [IsAuthenticated, IsTechTeam]
+
+    def get(self, request):
+        breakdown = get_encryption_status_breakdown()
+        return Response({'success': True, 'data': breakdown}, status=status.HTTP_200_OK)
+
+
+class TechStatisticsView(APIView):
+    permission_classes = [IsAuthenticated, IsTechTeam]
+
+    def get(self, request):
+        stats = get_tech_statistics()
+        return Response({'success': True, 'data': stats}, status=status.HTTP_200_OK)
 
 
 class ReceivedMaterialsView(APIView):

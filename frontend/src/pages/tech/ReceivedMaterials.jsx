@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getReceivedMaterials } from '../../api/techApi';
+import { getReceivedMaterials } from '../../services/techApi';
+import Loader from '../../components/admin/Loader';
 
 function ReceivedMaterials() {
   const navigate = useNavigate();
@@ -20,29 +21,25 @@ function ReceivedMaterials() {
   }, []);
 
   return (
-    <div className="container mt-5">
+    <div>
       <h2 className="mb-4">Received Materials</h2>
 
-      <form onSubmit={(e) => { e.preventDefault(); fetchBatches(); }} className="mb-3 d-flex gap-2">
-        <input
-          type="text"
-          className="form-control"
-          placeholder="Search by vendor"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <form onSubmit={(e) => { e.preventDefault(); fetchBatches(); }} className="mb-3 d-flex gap-2" style={{ maxWidth: '400px' }}>
+        <input type="text" className="form-control" placeholder="Search by vendor" value={search} onChange={(e) => setSearch(e.target.value)} />
         <button type="submit" className="btn btn-outline-primary">Search</button>
       </form>
 
       {loading ? (
-        <p>Loading...</p>
+        <Loader />
+      ) : batches.length === 0 ? (
+        <p className="text-muted">No materials awaiting processing.</p>
       ) : (
         <table className="table table-bordered">
           <thead>
             <tr>
               <th>Vendor</th>
               <th>Material Count</th>
-              <th>Upload Date</th>
+              <th>Approved Date</th>
               <th>Purchase Team</th>
               <th>Status</th>
               <th>Action</th>
@@ -55,13 +52,10 @@ function ReceivedMaterials() {
                 <td>{b.material_count}</td>
                 <td>{new Date(b.upload_date).toLocaleString()}</td>
                 <td>{b.purchase_team_member}</td>
-                <td>{b.status}</td>
+                <td><span className="badge bg-warning">{b.status}</span></td>
                 <td>
-                  <button
-                    className="btn btn-sm btn-primary"
-                    onClick={() => navigate(`/tech/generate-txt/${b.batch_id}`)}
-                  >
-                    Process
+                  <button className="btn btn-sm btn-primary" onClick={() => navigate(`/tech/process/${b.batch_id}`)}>
+                    Process Batch
                   </button>
                 </td>
               </tr>

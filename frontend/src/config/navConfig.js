@@ -29,7 +29,7 @@ export const NAV_CONFIG = {
         { to: 'rejected-materials', label: 'Rejected Materials', icon: FiXCircle },
         { to: 'notifications', label: 'Notifications', icon: FiBell },
         { to: 'statistics', label: 'Statistics', icon: FiBarChart2 },
-    ],
+      ],
     },
   tech: {
     label: 'Tech Panel',
@@ -39,6 +39,7 @@ export const NAV_CONFIG = {
       { to: 'received-materials', label: 'Received Materials', icon: FiPackage },
       { to: 'encryption-history', label: 'Encryption History', icon: FiLock },
       { to: 'notifications', label: 'Notifications', icon: FiBell },
+      { to: 'statistics', label: 'Statistics', icon: FiBarChart2 },
     ],
   },
   production: {
