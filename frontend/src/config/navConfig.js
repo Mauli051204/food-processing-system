@@ -49,8 +49,10 @@ export const NAV_CONFIG = {
       { to: 'dashboard', label: 'Dashboard', icon: FiGrid },
       { to: 'encrypted-files', label: 'Encrypted Files', icon: FiLock },
       { to: 'key-requests', label: 'Key Requests', icon: FiKey },
-      { to: 'download-history', label: 'Download History', icon: FiDownload },
+      { to: 'downloads', label: 'Downloads', icon: FiDownload },
+      { to: 'download-history', label: 'Download History', icon: FiClock },
       { to: 'notifications', label: 'Notifications', icon: FiBell },
+      { to: 'statistics', label: 'Statistics', icon: FiBarChart2 },
     ],
   },
   admin: {

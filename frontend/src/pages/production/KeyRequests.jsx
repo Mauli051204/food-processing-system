@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { getKeyRequests, decryptBatch, downloadFile } from '../../api/productionApi';
+import { toast } from 'react-toastify';
+import { getKeyRequests, decryptBatch, downloadFile } from '../../services/productionApi';
+import Loader from '../../components/admin/Loader';
 
 function KeyRequests() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState('');
+  const [actionId, setActionId] = useState(null);
 
   const fetchRequests = () => {
     setLoading(true);
@@ -18,16 +20,20 @@ function KeyRequests() {
   }, []);
 
   const handleDecrypt = async (encryptedFileId) => {
+    setActionId(encryptedFileId);
     try {
       const res = await decryptBatch(encryptedFileId);
-      setMessage(res.data.message);
+      toast.success(res.data.message);
       fetchRequests();
     } catch (err) {
-      setMessage(err.response?.data?.message || 'Decryption failed.');
+      toast.error(err.response?.data?.message || 'Decryption failed.');
+    } finally {
+      setActionId(null);
     }
   };
 
   const handleDownload = async (encryptedFileId) => {
+    setActionId(encryptedFileId);
     try {
       const res = await downloadFile(encryptedFileId);
       const url = window.URL.createObjectURL(new Blob([res.data]));
@@ -37,53 +43,62 @@ function KeyRequests() {
       document.body.appendChild(link);
       link.click();
       link.remove();
+      toast.success('Download started.');
     } catch (err) {
-      setMessage('Download failed.');
+      toast.error('Download failed.');
+    } finally {
+      setActionId(null);
     }
   };
 
-  if (loading) return <div className="container mt-5">Loading...</div>;
-
   return (
-    <div className="container mt-5">
-      <h2 className="mb-4">My Key Requests</h2>
-      {message && <div className="alert alert-info">{message}</div>}
+    <div>
+      <h2 className="mb-4">Key Requests</h2>
 
-      <table className="table table-striped">
-        <thead>
-          <tr>
-            <th>Material</th>
-            <th>Vendor</th>
-            <th>Status</th>
-            <th>Requested</th>
-            <th>Approved</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {requests.map((r) => (
-            <tr key={r.id}>
-              <td>{r.material_name}</td>
-              <td>{r.vendor_name}</td>
-              <td>{r.status}</td>
-              <td>{new Date(r.requested_at).toLocaleString()}</td>
-              <td>{r.approved_at ? new Date(r.approved_at).toLocaleString() : '-'}</td>
-              <td>
-                {r.status === 'APPROVED' && (
-                  <>
-                    <button className="btn btn-sm btn-warning me-2" onClick={() => handleDecrypt(r.encrypted_file)}>
-                      Decrypt
-                    </button>
-                    <button className="btn btn-sm btn-success" onClick={() => handleDownload(r.encrypted_file)}>
-                      Download
-                    </button>
-                  </>
-                )}
-              </td>
+      {loading ? (
+        <Loader />
+      ) : requests.length === 0 ? (
+        <p className="text-muted">No key requests yet.</p>
+      ) : (
+        <table className="table table-striped">
+          <thead>
+            <tr>
+              <th>Material</th>
+              <th>Vendor</th>
+              <th>Status</th>
+              <th>Requested</th>
+              <th>Approved</th>
+              <th>Action</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {requests.map((r) => (
+              <tr key={r.id}>
+                <td>{r.material_name}</td>
+                <td>{r.vendor_name}</td>
+                <td><span className={`badge bg-${r.status === 'APPROVED' ? 'success' : r.status === 'REJECTED' ? 'danger' : 'warning'}`}>{r.status}</span></td>
+                <td className="text-muted small">{new Date(r.requested_at).toLocaleString()}</td>
+                <td className="text-muted small">{r.approved_at ? new Date(r.approved_at).toLocaleString() : '-'}</td>
+                <td>
+                  {r.status === 'APPROVED' && (
+                    <div className="d-flex gap-1">
+                      <button className="btn btn-sm btn-warning" disabled={actionId === r.encrypted_file} onClick={() => handleDecrypt(r.encrypted_file)}>
+                        Decrypt
+                      </button>
+                      <button className="btn btn-sm btn-success" disabled={actionId === r.encrypted_file} onClick={() => handleDownload(r.encrypted_file)}>
+                        Download
+                      </button>
+                    </div>
+                  )}
+                  {r.status === 'APPROVED' && (
+                    <div className="small text-muted mt-1">Key shared automatically by the system.</div>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }

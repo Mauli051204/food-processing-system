@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { getAvailableEncryptedFiles, requestKey } from '../../api/productionApi';
+import { toast } from 'react-toastify';
+import { getAvailableEncryptedFiles, requestKey } from '../../services/productionApi';
+import Loader from '../../components/admin/Loader';
 
 function EncryptedFiles() {
   const [files, setFiles] = useState([]);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState('');
+  const [requestingId, setRequestingId] = useState(null);
 
   const fetchFiles = () => {
     setLoading(true);
-    getAvailableEncryptedFiles()
+    getAvailableEncryptedFiles({ search })
       .then((res) => setFiles(res.data.data))
       .finally(() => setLoading(false));
   };
@@ -18,48 +21,63 @@ function EncryptedFiles() {
   }, []);
 
   const handleRequestKey = async (id) => {
+    setRequestingId(id);
     try {
       const res = await requestKey(id);
-      setMessage(res.data.message);
+      toast.success(res.data.message);
       fetchFiles();
     } catch (err) {
-      setMessage(err.response?.data?.message || 'Failed to request key.');
+      toast.error(err.response?.data?.message || 'Failed to request key.');
+    } finally {
+      setRequestingId(null);
     }
   };
 
-  if (loading) return <div className="container mt-5">Loading...</div>;
-
   return (
-    <div className="container mt-5">
-      <h2 className="mb-4">Available Encrypted Files</h2>
-      {message && <div className="alert alert-info">{message}</div>}
+    <div>
+      <h2 className="mb-4">Encrypted Files</h2>
 
-      <table className="table table-bordered">
-        <thead>
-          <tr>
-            <th>Material</th>
-            <th>Vendor</th>
-            <th>Purchase Date</th>
-            <th>Status</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {files.map((f) => (
-            <tr key={f.id}>
-              <td>{f.material_name}</td>
-              <td>{f.vendor_name}</td>
-              <td>{new Date(f.purchase_date).toLocaleString()}</td>
-              <td>{f.status}</td>
-              <td>
-                <button className="btn btn-sm btn-primary" onClick={() => handleRequestKey(f.id)}>
-                  Request Key
-                </button>
-              </td>
+      <form onSubmit={(e) => { e.preventDefault(); fetchFiles(); }} className="mb-3 d-flex gap-2" style={{ maxWidth: '400px' }}>
+        <input type="text" className="form-control" placeholder="Search by vendor" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <button type="submit" className="btn btn-outline-primary">Search</button>
+      </form>
+
+      {loading ? (
+        <Loader />
+      ) : files.length === 0 ? (
+        <p className="text-muted">No encrypted files available for key request.</p>
+      ) : (
+        <table className="table table-bordered">
+          <thead>
+            <tr>
+              <th>Material</th>
+              <th>Vendor</th>
+              <th>Encryption Date</th>
+              <th>Status</th>
+              <th>Action</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {files.map((f) => (
+              <tr key={f.id}>
+                <td>{f.material_name}</td>
+                <td>{f.vendor_name}</td>
+                <td className="text-muted small">{new Date(f.created_at).toLocaleString()}</td>
+                <td><span className="badge bg-success">{f.status}</span></td>
+                <td>
+                  <button
+                    className="btn btn-sm btn-primary"
+                    disabled={requestingId === f.id}
+                    onClick={() => handleRequestKey(f.id)}
+                  >
+                    {requestingId === f.id ? 'Requesting...' : 'Request Key'}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }

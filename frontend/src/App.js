@@ -4,6 +4,7 @@ import AdminRoutes from './routes/AdminRoutes';
 import VendorRoutes from './routes/VendorRoutes';
 import PurchaseRoutes from './routes/PurchaseRoutes';
 import TechRoutes from './routes/TechRoutes';
+import ProductionRoutes from './routes/ProductionRoutes';
 import Login from './pages/Login';
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
         <Route path="/vendor/*" element={<VendorRoutes />} />
         <Route path="/purchase/*" element={<PurchaseRoutes />} />
         <Route path="/tech/*" element={<TechRoutes />} />
+        <Route path="/production/*" element={<ProductionRoutes />} />
         <Route path="/unauthorized" element={<div className="container mt-5"><h2>Unauthorized</h2><p>You do not have permission to view this page.</p></div>} />
       </Routes>
     </BrowserRouter>

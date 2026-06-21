@@ -211,3 +211,70 @@ def get_production_history(production_user):
         })
 
     return results
+
+def get_download_trend(production_user, days=14):
+    """
+    Daily download counts for this production user over the last
+    `days` days, for the Download Trend / Daily Downloads chart.
+    """
+    from django.utils import timezone
+    from django.db.models.functions import TruncDate
+    from django.db.models import Count
+    import datetime
+
+    today = timezone.now().date()
+    start_date = today - datetime.timedelta(days=days - 1)
+
+    raw = (
+        DownloadHistory.objects.filter(production_user=production_user, downloaded_at__date__gte=start_date)
+        .annotate(day=TruncDate('downloaded_at'))
+        .values('day')
+        .annotate(count=Count('id'))
+    )
+    by_day = {row['day']: row['count'] for row in raw}
+
+    result = []
+    for i in range(days):
+        day = start_date + datetime.timedelta(days=i)
+        result.append({'date': day.isoformat(), 'count': by_day.get(day, 0)})
+
+    return result
+
+
+def get_key_request_status_breakdown(production_user):
+    """
+    Counts of this user's key requests grouped by status, for the
+    Key Request Status / Key Request Distribution pie chart.
+    """
+    requests = KeyRequest.objects.filter(requested_by=production_user)
+    return [
+        {'label': 'Pending', 'value': requests.filter(status=KeyRequest.PENDING).count()},
+        {'label': 'Approved', 'value': requests.filter(status=KeyRequest.APPROVED).count()},
+        {'label': 'Rejected', 'value': requests.filter(status=KeyRequest.REJECTED).count()},
+    ]
+
+
+def get_production_statistics(production_user):
+    """
+    Cards for the Production Statistics page.
+    """
+    from django.utils import timezone
+
+    today = timezone.now().date()
+
+    total_downloads = DownloadHistory.objects.filter(production_user=production_user).count()
+    todays_downloads = DownloadHistory.objects.filter(
+        production_user=production_user, downloaded_at__date=today
+    ).count()
+    requests = KeyRequest.objects.filter(requested_by=production_user)
+    pending_requests = requests.filter(status=KeyRequest.PENDING).count()
+    approved_requests = requests.filter(status=KeyRequest.APPROVED).count()
+    rejected_requests = requests.filter(status=KeyRequest.REJECTED).count()
+
+    return {
+        'total_downloads': total_downloads,
+        'todays_downloads': todays_downloads,
+        'pending_requests': pending_requests,
+        'approved_requests': approved_requests,
+        'rejected_requests': rejected_requests,
+    }

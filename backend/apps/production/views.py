@@ -26,6 +26,9 @@ from .services.production_services import (
     record_download,
     get_download_history,
     get_production_history,
+    get_download_trend,
+    get_key_request_status_breakdown,
+    get_production_statistics,
 )
 from .services.key_request_service import (
     approve_key_request,
@@ -52,6 +55,31 @@ class ProductionDashboardView(APIView):
     def get(self, request):
         stats = get_production_dashboard_stats()
         return Response({'success': True, 'stats': stats}, status=status.HTTP_200_OK)
+
+class DownloadTrendView(APIView):
+    permission_classes = [IsAuthenticated, IsProductionTeam]
+
+    def get(self, request):
+        days = int(request.query_params.get('days', 14))
+        trend = get_download_trend(request.user, days=days)
+        return Response({'success': True, 'data': trend}, status=status.HTTP_200_OK)
+
+
+class KeyRequestStatusBreakdownView(APIView):
+    permission_classes = [IsAuthenticated, IsProductionTeam]
+
+    def get(self, request):
+        breakdown = get_key_request_status_breakdown(request.user)
+        return Response({'success': True, 'data': breakdown}, status=status.HTTP_200_OK)
+
+
+class ProductionStatisticsView(APIView):
+    permission_classes = [IsAuthenticated, IsProductionTeam]
+
+    def get(self, request):
+        stats = get_production_statistics(request.user)
+        return Response({'success': True, 'data': stats}, status=status.HTTP_200_OK)
+
 
 
 class AvailableEncryptedFilesView(APIView):

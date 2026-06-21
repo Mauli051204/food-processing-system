@@ -9,6 +9,9 @@ from .views import (
     DownloadHistoryView,
     ProductionHistoryView,
     AdminKeyRequestActionView,
+    DownloadTrendView,
+    KeyRequestStatusBreakdownView,
+    ProductionStatisticsView,
 )
 
 urlpatterns = [
@@ -21,4 +24,7 @@ urlpatterns = [
     path('download-history/', DownloadHistoryView.as_view(), name='production-download-history'),
     path('history/', ProductionHistoryView.as_view(), name='production-history'),
     path('admin/key-request/<int:key_request_id>/action/', AdminKeyRequestActionView.as_view(), name='admin-key-request-action'),
+    path('download-trend/', DownloadTrendView.as_view(), name='production-download-trend'),
+    path('key-request-status-breakdown/', KeyRequestStatusBreakdownView.as_view(), name='production-key-request-status-breakdown'),
+    path('statistics/', ProductionStatisticsView.as_view(), name='production-statistics'),
 ]
