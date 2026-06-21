@@ -1,8 +1,9 @@
 from django.core.exceptions import ValidationError
+from apps.accounts.models import User
 
 
 def validate_user_pending_approval(user):
-    if user.is_approved:
+    if user.status == User.APPROVED:
         raise ValidationError('This user has already been approved.')
 
 

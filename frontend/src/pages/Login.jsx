@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { login } from '../services/authApi';
 import { ensureCsrf } from '../services/csrf';
 
@@ -7,6 +7,8 @@ function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -44,12 +46,39 @@ function Login() {
         </div>
         <div className="mb-3">
           <label className="form-label">Password</label>
-          <input type="password" className="form-control" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <div className="input-group">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              className="form-control"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <button type="button" className="btn btn-outline-secondary" onClick={() => setShowPassword((s) => !s)}>
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
+        </div>
+        <div className="mb-3 d-flex justify-content-between align-items-center">
+          <div className="form-check">
+            <input
+              type="checkbox"
+              className="form-check-input"
+              id="rememberMe"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+            />
+            <label className="form-check-label small" htmlFor="rememberMe">Remember Me</label>
+          </div>
+          {/* <span className="small text-muted" style={{ cursor: 'not-allowed' }} title="Coming soon">Forgot Password?</span> */}
         </div>
         <button type="submit" className="btn btn-primary w-100" disabled={loading}>
           {loading ? 'Logging in...' : 'Login'}
         </button>
       </form>
+      <p className="text-center mt-3 mb-0 small">
+        Don't have an account? <Link to="/register">Register</Link>
+      </p>
     </div>
   );
 }

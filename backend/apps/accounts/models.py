@@ -31,6 +31,16 @@ class Role(models.Model):
 
 
 class User(AbstractUser):
+    PENDING = 'PENDING'
+    APPROVED = 'APPROVED'
+    REJECTED = 'REJECTED'
+
+    STATUS_CHOICES = [
+        (PENDING, 'Pending'),
+        (APPROVED, 'Approved'),
+        (REJECTED, 'Rejected'),
+    ]
+
     email = models.EmailField(unique=True)
     role = models.ForeignKey(
         Role,
@@ -41,6 +51,7 @@ class User(AbstractUser):
     )
     phone = models.CharField(max_length=20, blank=True, null=True)
     is_approved = models.BooleanField(default=False)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
     updated_at = models.DateTimeField(auto_now=True)
 
     USERNAME_FIELD = 'email'
@@ -53,6 +64,7 @@ class User(AbstractUser):
         indexes = [
             models.Index(fields=['role']),
             models.Index(fields=['is_approved']),
+            models.Index(fields=['status']),
         ]
 
     def __str__(self):

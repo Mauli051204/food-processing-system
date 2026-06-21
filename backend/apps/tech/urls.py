@@ -11,8 +11,10 @@ from .views import (
     EncryptionStatusBreakdownView,
     TechStatisticsView,
 )
+from apps.common.views import TechRegisterView
 
 urlpatterns = [
+    path('register/', TechRegisterView.as_view(), name='tech-register'),
     path('dashboard/', TechDashboardView.as_view(), name='tech-dashboard'),
     path('materials/', ReceivedMaterialsView.as_view(), name='tech-materials'),
     path('generate-txt/<str:batch_id>/', GenerateTxtView.as_view(), name='tech-generate-txt'),

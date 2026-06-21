@@ -21,7 +21,7 @@ def get_admin_dashboard_stats():
     total_purchase = User.objects.filter(role__name='PURCHASE').count()
     total_tech = User.objects.filter(role__name='TECH').count()
     total_production = User.objects.filter(role__name='PRODUCTION').count()
-    pending_approvals = User.objects.filter(is_approved=False).exclude(role__name='ADMIN').count()
+    pending_approvals = User.objects.filter(status=User.PENDING).exclude(role__name='ADMIN').count()
     pending_key_requests = KeyRequest.objects.filter(status=KeyRequest.PENDING).count()
     total_uploaded_files = UploadBatch.objects.count()
     total_approved_materials = ApprovedMaterial.objects.count()
@@ -105,9 +105,11 @@ def get_all_users(search=None, role_filter=None, status_filter=None):
     if role_filter:
         queryset = queryset.filter(role__name=role_filter.upper())
     if status_filter == 'pending':
-        queryset = queryset.filter(is_approved=False)
+        queryset = queryset.filter(status=User.PENDING)
     elif status_filter == 'approved':
-        queryset = queryset.filter(is_approved=True)
+        queryset = queryset.filter(status=User.APPROVED)
+    elif status_filter == 'rejected':
+        queryset = queryset.filter(status=User.REJECTED)
     elif status_filter == 'active':
         queryset = queryset.filter(is_active=True)
     elif status_filter == 'inactive':
@@ -123,7 +125,8 @@ def approve_user(user, admin_user):
 
     user.is_approved = True
     user.is_active = True
-    user.save(update_fields=['is_approved', 'is_active'])
+    user.status = User.APPROVED
+    user.save(update_fields=['is_approved', 'is_active', 'status'])
 
     AuditLog.objects.create(
         user=admin_user,
@@ -148,7 +151,8 @@ def reject_user(user, admin_user, reason=''):
 
     user.is_approved = False
     user.is_active = False
-    user.save(update_fields=['is_approved', 'is_active'])
+    user.status = User.REJECTED
+    user.save(update_fields=['is_approved', 'is_active', 'status'])
 
     AuditLog.objects.create(
         user=admin_user,
@@ -246,15 +250,6 @@ def get_audit_logs(search=None, user_filter=None, action_filter=None, date_from=
 
 
 def get_all_notifications(read_filter=None):
-    """
-    Admin-only: lists notifications ACROSS ALL USERS, not scoped to the
-    requesting admin. This is intentionally different from
-    notification_service.get_notifications_for_user(), which is
-    per-user by design. Admin needs system-wide visibility; this
-    function stays in admin_panel/services.py rather than the shared
-    service since it's an Admin-specific concern, not a general
-    notification-retrieval concern.
-    """
     queryset = Notification.objects.select_related('user').order_by('-created_at')
 
     if read_filter == 'read':

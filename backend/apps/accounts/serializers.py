@@ -20,8 +20,15 @@ class LoginSerializer(serializers.Serializer):
         if not check_password(password, user_obj.password):
             raise serializers.ValidationError({'message': 'Invalid credentials'})
 
-        if not user_obj.is_approved and not user_obj.is_admin():
+        if user_obj.is_admin():
+            attrs['user'] = user_obj
+            return attrs
+
+        if user_obj.status == User.PENDING:
             raise serializers.ValidationError({'message': 'Your account is waiting for Admin approval.'})
+
+        if user_obj.status == User.REJECTED:
+            raise serializers.ValidationError({'message': 'Your registration has been rejected. Please contact the Administrator.'})
 
         if not user_obj.is_active:
             raise serializers.ValidationError({'message': 'Account is inactive. Please contact admin.'})
@@ -36,7 +43,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'name', 'email', 'phone', 'role', 'is_approved', 'is_active']
+        fields = ['id', 'name', 'email', 'phone', 'role', 'is_approved', 'status', 'is_active']
 
     def get_role(self, obj):
         return obj.role.name.lower() if obj.role else None

@@ -13,8 +13,10 @@ from .views import (
     KeyRequestStatusBreakdownView,
     ProductionStatisticsView,
 )
+from apps.common.views import ProductionRegisterView
 
 urlpatterns = [
+    path('register/', ProductionRegisterView.as_view(), name='production-register'),
     path('dashboard/', ProductionDashboardView.as_view(), name='production-dashboard'),
     path('encrypted-files/', AvailableEncryptedFilesView.as_view(), name='production-encrypted-files'),
     path('request-key/<int:encrypted_file_id>/', RequestKeyView.as_view(), name='production-request-key'),

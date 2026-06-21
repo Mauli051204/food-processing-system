@@ -14,8 +14,10 @@ from .views import (
     MaterialApprovalBreakdownView,
     ReviewActivityTrendView,
 )
+from apps.common.views import PurchaseRegisterView
 
 urlpatterns = [
+    path('register/', PurchaseRegisterView.as_view(), name='purchase-register'),
     path('dashboard/', PurchaseDashboardView.as_view(), name='purchase-dashboard'),
     path('vendor-requests/', VendorRequestsView.as_view(), name='purchase-vendor-requests'),
     path('vendor/<int:vendor_id>/', VendorDetailView.as_view(), name='purchase-vendor-detail'),
