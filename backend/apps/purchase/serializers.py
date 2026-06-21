@@ -56,6 +56,21 @@ class ApproveMaterialSerializer(serializers.Serializer):
     edited_cost = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
     remarks = serializers.CharField(required=False, allow_blank=True)
 
+    def validate(self, attrs):
+        # Same positivity constraint as EditMaterialSerializer — these
+        # fields can override quantity/cost at approval time (Purchase
+        # can adjust the material's numbers without a separate Edit
+        # call first), so they need the identical guard. Previously
+        # this serializer had no validation at all, allowing a
+        # negative or zero edited_quantity/edited_cost to pass straight
+        # through into ApprovedMaterial and propagate to Tech's TXT
+        # output.
+        if 'edited_quantity' in attrs and attrs['edited_quantity'] <= 0:
+            raise serializers.ValidationError({'edited_quantity': 'Quantity must be greater than 0.'})
+        if 'edited_cost' in attrs and attrs['edited_cost'] <= 0:
+            raise serializers.ValidationError({'edited_cost': 'Cost must be greater than 0.'})
+        return attrs
+
 
 class RejectMaterialSerializer(serializers.Serializer):
     reason = serializers.CharField(required=True, allow_blank=False)

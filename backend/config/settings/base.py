@@ -26,11 +26,11 @@ INSTALLED_APPS = [
     'apps.tech',
     'apps.production',
     'apps.encryption',
-    'apps.common',
     'apps.notifications',
     'apps.audit',
     'apps.dashboard',
     'apps.admin_panel',
+    'apps.common',
 ]
 
 MIDDLEWARE = [
@@ -120,13 +120,27 @@ CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='http://localhost:
 CSRF_COOKIE_HTTPONLY = False
 SESSION_COOKIE_HTTPONLY = True
 
-# Explicit cookie policy for cross-port (3000 -> 8000) dev requests.
-# Without these, some browsers may decline to store/send the session
-# cookie on credentialed cross-origin requests even with CORS configured.
+# Cookie security flags scale automatically with DEBUG.
+# DEBUG=True  (local dev over HTTP):  SECURE=False so cookies still work
+#                                      over plain http://localhost.
+# DEBUG=False (production):           SECURE=True is enforced automatically
+#                                      so cookies are never sent over an
+#                                      unencrypted connection — this is a
+#                                      required production hardening that
+#                                      must not depend on someone
+#                                      remembering to flip it manually.
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+
+# SameSite=Lax is appropriate in both environments for this project —
+# it permits the cross-port localhost:3000 -> localhost:8000 dev setup
+# (Phase 8A) while still blocking the cross-site request patterns
+# SameSite exists to prevent in production. Strict would break normal
+# top-level navigation flows (e.g. clicking an emailed link into the
+# app); None would require Secure=True everywhere and isn't needed
+# here since this isn't an embedded/third-party-cookie scenario.
 SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SAMESITE = 'Lax'
-CSRF_COOKIE_SECURE = False
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 86400  # 24 hours

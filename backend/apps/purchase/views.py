@@ -1,10 +1,10 @@
-# C:\Mauli\GradTwin\Project\food-processing-system\backend\apps\purchase\views.py
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.shortcuts import get_object_or_404
+from django.core.paginator import Paginator
 
 from .models import Material, ApprovedMaterial, RejectedMaterial, UploadBatch
 from .permissions import IsPurchaseTeam
@@ -34,6 +34,7 @@ from .services import (
 from .utils import paginate_queryset
 from apps.vendors.models import VendorRequest
 from apps.accounts.models import User
+from apps.common.validators import get_safe_page_size, get_safe_days, get_safe_search
 
 
 class PurchaseDashboardView(APIView):
@@ -49,39 +50,13 @@ class PurchaseDashboardView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-
-class VendorApprovalTrendView(APIView):
-    permission_classes = [IsAuthenticated, IsPurchaseTeam]
-
-    def get(self, request):
-        days = int(request.query_params.get('days', 14))
-        trend = get_vendor_approval_trend(days=days)
-        return Response({'success': True, 'data': trend}, status=status.HTTP_200_OK)
-
-
-class MaterialApprovalBreakdownView(APIView):
-    permission_classes = [IsAuthenticated, IsPurchaseTeam]
-
-    def get(self, request):
-        breakdown = get_material_approval_breakdown()
-        return Response({'success': True, 'data': breakdown}, status=status.HTTP_200_OK)
-
-
-class ReviewActivityTrendView(APIView):
-    permission_classes = [IsAuthenticated, IsPurchaseTeam]
-
-    def get(self, request):
-        days = int(request.query_params.get('days', 14))
-        trend = get_review_activity_trend(days=days)
-        return Response({'success': True, 'data': trend}, status=status.HTTP_200_OK)
-
 class VendorRequestsView(APIView):
     permission_classes = [IsAuthenticated, IsPurchaseTeam]
 
     def get(self, request):
         queryset = VendorRequest.objects.select_related('vendor').order_by('-requested_at')
 
-        search = request.query_params.get('search')
+        search = get_safe_search(request)
         if search:
             queryset = queryset.filter(vendor__first_name__icontains=search) | queryset.filter(
                 vendor__vendor_profile__company_name__icontains=search
@@ -106,8 +81,7 @@ class VendorRequestsView(APIView):
             })
 
         page_number = request.query_params.get('page', 1)
-        page_size = request.query_params.get('page_size', 20)
-        from django.core.paginator import Paginator
+        page_size = get_safe_page_size(request)
         paginator = Paginator(results, page_size)
         page_obj = paginator.get_page(page_number)
 
@@ -166,11 +140,11 @@ class MaterialReviewView(APIView):
     def get(self, request):
         queryset = Material.objects.select_related('vendor').order_by('-created_at')
 
-        search = request.query_params.get('search')
+        search = get_safe_search(request)
         if search:
             queryset = queryset.filter(material_name__icontains=search)
 
-        supplier = request.query_params.get('supplier')
+        supplier = get_safe_search(request, param_name='supplier')
         if supplier:
             queryset = queryset.filter(supplier__icontains=supplier)
 
@@ -303,3 +277,29 @@ class SendToTechView(APIView):
             'success': True,
             'message': f'{count} material(s) sent to Tech Team.',
         }, status=status.HTTP_200_OK)
+
+
+class VendorApprovalTrendView(APIView):
+    permission_classes = [IsAuthenticated, IsPurchaseTeam]
+
+    def get(self, request):
+        days = get_safe_days(request)
+        trend = get_vendor_approval_trend(days=days)
+        return Response({'success': True, 'data': trend}, status=status.HTTP_200_OK)
+
+
+class MaterialApprovalBreakdownView(APIView):
+    permission_classes = [IsAuthenticated, IsPurchaseTeam]
+
+    def get(self, request):
+        breakdown = get_material_approval_breakdown()
+        return Response({'success': True, 'data': breakdown}, status=status.HTTP_200_OK)
+
+
+class ReviewActivityTrendView(APIView):
+    permission_classes = [IsAuthenticated, IsPurchaseTeam]
+
+    def get(self, request):
+        days = get_safe_days(request)
+        trend = get_review_activity_trend(days=days)
+        return Response({'success': True, 'data': trend}, status=status.HTTP_200_OK)

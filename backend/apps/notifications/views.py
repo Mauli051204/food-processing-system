@@ -18,6 +18,7 @@ from apps.common.services.notification_service import (
     delete_all_read,
     paginate,
 )
+from apps.common.validators import get_safe_page_size, get_safe_search
 
 
 class NotificationListView(APIView):
@@ -34,7 +35,7 @@ class NotificationListView(APIView):
         queryset = get_notifications_for_user(
             request.user,
             read_filter=request.query_params.get('filter'),
-            search=request.query_params.get('search'),
+            search=get_safe_search(request),
             type_filter=request.query_params.get('type'),
             date_from=request.query_params.get('date_from'),
             date_to=request.query_params.get('date_to'),
@@ -42,7 +43,7 @@ class NotificationListView(APIView):
         )
 
         page = request.query_params.get('page', 1)
-        page_size = request.query_params.get('page_size', 20)
+        page_size = get_safe_page_size(request)
         result = paginate(queryset, page=page, page_size=page_size)
 
         return Response({

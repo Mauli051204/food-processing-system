@@ -44,6 +44,7 @@ from apps.production.services.key_request_service import (
     KeyRequestNotFound,
     KeyRequestAlreadyProcessed,
 )
+from apps.common.validators import get_safe_search
 
 
 class AdminDashboardView(APIView):
@@ -59,7 +60,7 @@ class AdminUsersView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def get(self, request):
-        search = request.query_params.get('search')
+        search = get_safe_search(request)
         role_filter = request.query_params.get('role')
         status_filter = request.query_params.get('status')
 
@@ -154,12 +155,6 @@ class AdminKeyRequestsView(APIView):
 
 
 class AdminKeyRequestApproveView(APIView):
-    """
-    Thin view. Delegates entirely to the shared
-    apps.production.services.key_request_service.approve_key_request.
-    No business logic lives here, and this view never imports or
-    instantiates anything from apps.production.views.
-    """
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def post(self, request, key_request_id):
@@ -179,10 +174,6 @@ class AdminKeyRequestApproveView(APIView):
 
 
 class AdminKeyRequestRejectView(APIView):
-    """
-    Thin view. Delegates entirely to the shared
-    apps.production.services.key_request_service.reject_key_request.
-    """
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def post(self, request, key_request_id):
@@ -207,7 +198,7 @@ class AdminEncryptionHistoryView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def get(self, request):
-        search = request.query_params.get('search')
+        search = get_safe_search(request)
         status_filter = request.query_params.get('status')
         queryset = get_encryption_management_data(search=search, status_filter=status_filter)
         result = paginate_queryset(request, queryset, AdminEncryptedFileSerializer)
@@ -218,7 +209,7 @@ class AdminDownloadHistoryView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def get(self, request):
-        search = request.query_params.get('search')
+        search = get_safe_search(request)
         queryset = get_download_management_data(search=search)
         result = paginate_queryset(request, queryset, AdminDownloadHistorySerializer)
         return Response({'success': True, **result}, status=status.HTTP_200_OK)
@@ -228,7 +219,7 @@ class AdminAuditLogsView(APIView):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def get(self, request):
-        search = request.query_params.get('search')
+        search = get_safe_search(request)
         user_filter = request.query_params.get('user_id')
         action_filter = request.query_params.get('action')
         date_from = request.query_params.get('date_from')

@@ -32,15 +32,37 @@ def get_recent_requests():
     """
     Returns recent VendorRequest entries joined with vendor/company info
     for the dashboard's "Recent Requests" table.
+
+    Previously issued up to 9 extra queries beyond the base list (one
+    select_related('vendor') traversal does NOT cover the reverse
+    OneToOne vendor_profile relation, and a separate UploadBatch
+    lookup ran once per row inside the loop). Fixed by:
+      1. select_related('vendor', 'vendor__vendor_profile') to cover
+         both forward FK hops in the single base query.
+      2. Prefetching all relevant vendors' latest UploadBatch in one
+         query instead of querying per-row inside the loop.
     """
-    requests = VendorRequest.objects.select_related('vendor').order_by('-requested_at')[:10]
+    requests = VendorRequest.objects.select_related(
+        'vendor', 'vendor__vendor_profile'
+    ).order_by('-requested_at')[:10]
+
+    vendor_ids = [req.vendor_id for req in requests]
+
+    # One query for all vendors' batches, instead of one query per row.
+    # Ordered so the first occurrence per vendor_id (after the Python-side
+    # dict build below) is the most recent batch for that vendor.
+    latest_batches_by_vendor = {}
+    for batch in UploadBatch.objects.filter(vendor_id__in=vendor_ids).order_by('-created_at'):
+        if batch.vendor_id not in latest_batches_by_vendor:
+            latest_batches_by_vendor[batch.vendor_id] = batch
+
     results = []
     for req in requests:
         company_name = ''
         if hasattr(req.vendor, 'vendor_profile'):
             company_name = req.vendor.vendor_profile.company_name
 
-        latest_batch = UploadBatch.objects.filter(vendor=req.vendor).order_by('-created_at').first()
+        latest_batch = latest_batches_by_vendor.get(req.vendor_id)
 
         results.append({
             'id': req.id,

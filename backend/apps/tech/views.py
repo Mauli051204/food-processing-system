@@ -1,4 +1,3 @@
-# C:\Mauli\GradTwin\Project\food-processing-system\backend\apps\tech\views.py
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
@@ -24,6 +23,7 @@ from .services import (
 )
 from .utils import media_path
 from apps.tech.models import EncryptedFile
+from apps.common.validators import get_safe_page_size, get_safe_days, get_safe_search
 
 
 class TechDashboardView(APIView):
@@ -39,38 +39,13 @@ class TechDashboardView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-class EncryptionTrendView(APIView):
-    permission_classes = [IsAuthenticated, IsTechTeam]
-
-    def get(self, request):
-        days = int(request.query_params.get('days', 14))
-        trend = get_encryption_trend(days=days)
-        return Response({'success': True, 'data': trend}, status=status.HTTP_200_OK)
-
-
-class EncryptionStatusBreakdownView(APIView):
-    permission_classes = [IsAuthenticated, IsTechTeam]
-
-    def get(self, request):
-        breakdown = get_encryption_status_breakdown()
-        return Response({'success': True, 'data': breakdown}, status=status.HTTP_200_OK)
-
-
-class TechStatisticsView(APIView):
-    permission_classes = [IsAuthenticated, IsTechTeam]
-
-    def get(self, request):
-        stats = get_tech_statistics()
-        return Response({'success': True, 'data': stats}, status=status.HTTP_200_OK)
-
-
 class ReceivedMaterialsView(APIView):
     permission_classes = [IsAuthenticated, IsTechTeam]
 
     def get(self, request):
         batches = group_received_materials_by_batch()
 
-        search = request.query_params.get('search')
+        search = get_safe_search(request)
         if search:
             batches = [b for b in batches if search.lower() in b['vendor_name'].lower()]
 
@@ -120,14 +95,14 @@ class EncryptionHistoryView(APIView):
     def get(self, request):
         from django.core.paginator import Paginator
 
-        search = request.query_params.get('search')
+        search = get_safe_search(request)
         vendor_id = request.query_params.get('vendor_id')
         status_filter = request.query_params.get('status')
 
         queryset = get_encryption_history(search=search, vendor_id=vendor_id, status_filter=status_filter)
 
         page_number = request.query_params.get('page', 1)
-        page_size = request.query_params.get('page_size', 20)
+        page_size = get_safe_page_size(request)
         paginator = Paginator(queryset, page_size)
         page_obj = paginator.get_page(page_number)
 
@@ -166,3 +141,28 @@ class EncryptedFilesListView(APIView):
             'success': True,
             'data': EncryptedFileSerializer(queryset, many=True).data,
         }, status=status.HTTP_200_OK)
+
+
+class EncryptionTrendView(APIView):
+    permission_classes = [IsAuthenticated, IsTechTeam]
+
+    def get(self, request):
+        days = get_safe_days(request)
+        trend = get_encryption_trend(days=days)
+        return Response({'success': True, 'data': trend}, status=status.HTTP_200_OK)
+
+
+class EncryptionStatusBreakdownView(APIView):
+    permission_classes = [IsAuthenticated, IsTechTeam]
+
+    def get(self, request):
+        breakdown = get_encryption_status_breakdown()
+        return Response({'success': True, 'data': breakdown}, status=status.HTTP_200_OK)
+
+
+class TechStatisticsView(APIView):
+    permission_classes = [IsAuthenticated, IsTechTeam]
+
+    def get(self, request):
+        stats = get_tech_statistics()
+        return Response({'success': True, 'data': stats}, status=status.HTTP_200_OK)

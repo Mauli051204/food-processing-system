@@ -39,6 +39,7 @@ from .services.key_request_service import (
 from .utils import get_client_ip
 from apps.tech.models import EncryptedFile
 from apps.production.models import KeyRequest
+from apps.common.validators import get_safe_page_size, get_safe_days, get_safe_search
 
 
 class IsAdmin(BasePermission):
@@ -56,41 +57,16 @@ class ProductionDashboardView(APIView):
         stats = get_production_dashboard_stats()
         return Response({'success': True, 'stats': stats}, status=status.HTTP_200_OK)
 
-class DownloadTrendView(APIView):
-    permission_classes = [IsAuthenticated, IsProductionTeam]
-
-    def get(self, request):
-        days = int(request.query_params.get('days', 14))
-        trend = get_download_trend(request.user, days=days)
-        return Response({'success': True, 'data': trend}, status=status.HTTP_200_OK)
-
-
-class KeyRequestStatusBreakdownView(APIView):
-    permission_classes = [IsAuthenticated, IsProductionTeam]
-
-    def get(self, request):
-        breakdown = get_key_request_status_breakdown(request.user)
-        return Response({'success': True, 'data': breakdown}, status=status.HTTP_200_OK)
-
-
-class ProductionStatisticsView(APIView):
-    permission_classes = [IsAuthenticated, IsProductionTeam]
-
-    def get(self, request):
-        stats = get_production_statistics(request.user)
-        return Response({'success': True, 'data': stats}, status=status.HTTP_200_OK)
-
-
 
 class AvailableEncryptedFilesView(APIView):
     permission_classes = [IsAuthenticated, IsProductionTeam]
 
     def get(self, request):
-        search = request.query_params.get('search')
+        search = get_safe_search(request)
         queryset = get_available_encrypted_files(search=search)
 
         page_number = request.query_params.get('page', 1)
-        page_size = request.query_params.get('page_size', 20)
+        page_size = get_safe_page_size(request)
         paginator = Paginator(queryset, page_size)
         page_obj = paginator.get_page(page_number)
 
@@ -175,11 +151,11 @@ class DownloadHistoryView(APIView):
     permission_classes = [IsAuthenticated, IsProductionTeam]
 
     def get(self, request):
-        search = request.query_params.get('search')
+        search = get_safe_search(request)
         queryset = get_download_history(production_user=request.user, search=search)
 
         page_number = request.query_params.get('page', 1)
-        page_size = request.query_params.get('page_size', 20)
+        page_size = get_safe_page_size(request)
         paginator = Paginator(queryset, page_size)
         page_obj = paginator.get_page(page_number)
 
@@ -206,12 +182,6 @@ class ProductionHistoryView(APIView):
 
 
 class AdminKeyRequestActionView(APIView):
-    """
-    Thin view. All approval/rejection business logic lives in
-    apps.production.services.key_request_service — this view's only
-    job is to parse the request, call the shared service, and translate
-    the result (or exception) into an HTTP response.
-    """
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def post(self, request, key_request_id):
@@ -236,3 +206,28 @@ class AdminKeyRequestActionView(APIView):
             'success': True,
             'message': f'Key request {action}d successfully.',
         }, status=status.HTTP_200_OK)
+
+
+class DownloadTrendView(APIView):
+    permission_classes = [IsAuthenticated, IsProductionTeam]
+
+    def get(self, request):
+        days = get_safe_days(request)
+        trend = get_download_trend(request.user, days=days)
+        return Response({'success': True, 'data': trend}, status=status.HTTP_200_OK)
+
+
+class KeyRequestStatusBreakdownView(APIView):
+    permission_classes = [IsAuthenticated, IsProductionTeam]
+
+    def get(self, request):
+        breakdown = get_key_request_status_breakdown(request.user)
+        return Response({'success': True, 'data': breakdown}, status=status.HTTP_200_OK)
+
+
+class ProductionStatisticsView(APIView):
+    permission_classes = [IsAuthenticated, IsProductionTeam]
+
+    def get(self, request):
+        stats = get_production_statistics(request.user)
+        return Response({'success': True, 'data': stats}, status=status.HTTP_200_OK)

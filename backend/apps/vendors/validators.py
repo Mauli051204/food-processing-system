@@ -26,6 +26,57 @@ def validate_password_strength(password):
         raise ValidationError(errors)
 
 
+def validate_phone_number(value):
+    """
+    Requires 7-15 digits, optionally prefixed with a single '+'.
+    Covers the practical range of real phone numbers (E.164 max is 15
+    digits) without being overly strict about formatting — no
+    enforced country-code structure, since this is a single global
+    field used across all five roles' registration forms.
+    """
+    cleaned = value.strip()
+    if not re.fullmatch(r'\+?\d{7,15}', cleaned):
+        raise ValidationError(
+            'Phone number must contain 7 to 15 digits, with an optional leading "+".'
+        )
+    return cleaned
+
+
+def validate_full_name(value):
+    """
+    Rejects empty, whitespace-only, or single-character names.
+    Allows letters, spaces, hyphens, and apostrophes (covers names
+    like "Mary-Jane" or "O'Brien") — rejects anything that's pure
+    whitespace or symbols.
+    """
+    cleaned = value.strip()
+    if len(cleaned) < 2:
+        raise ValidationError('Full name must be at least 2 characters long.')
+    if not re.search(r'[A-Za-z]', cleaned):
+        raise ValidationError('Full name must contain at least one letter.')
+    return cleaned
+
+
+def sanitize_filename(filename):
+    """
+    Strips path components and dangerous characters from a user-supplied
+    filename, keeping only the basename and a safe character set.
+    Prevents path traversal (../, absolute paths, null bytes) regardless
+    of what the client sends as the original filename.
+    """
+    basename = os.path.basename(filename.replace('\\', '/'))
+
+    name, ext = os.path.splitext(basename)
+    name = re.sub(r'[^A-Za-z0-9_-]', '_', name)
+    ext = re.sub(r'[^A-Za-z0-9.]', '', ext)
+
+    sanitized = f'{name}{ext}'
+    if not sanitized or sanitized in ('.', '..'):
+        sanitized = 'upload'
+
+    return sanitized
+
+
 def validate_uploaded_file(uploaded_file):
     """
     Validates extension, size, and that the file isn't empty.

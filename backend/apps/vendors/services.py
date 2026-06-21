@@ -1,7 +1,7 @@
 import os
 import uuid
 from django.conf import settings
-from .validators import validate_uploaded_file, parse_material_file, validate_material_row
+from .validators import validate_uploaded_file, parse_material_file, validate_material_row, sanitize_filename
 from apps.purchase.models import Material, UploadBatch
 
 
@@ -31,9 +31,18 @@ def process_vendor_upload(vendor, uploaded_file):
         from django.core.exceptions import ValidationError
         raise ValidationError(f'A file named "{uploaded_file.name}" was already uploaded.')
 
-    safe_name = f'{uuid.uuid4().hex}_{uploaded_file.name}'
+    safe_name = f'{uuid.uuid4().hex}_{sanitize_filename(uploaded_file.name)}'
     relative_path = os.path.join('uploads', 'csv_xlsx', safe_name)
     full_path = os.path.join(settings.MEDIA_ROOT, relative_path)
+
+    # Defense in depth: confirm the resolved path is still inside
+    # MEDIA_ROOT before writing anything to disk.
+    real_media_root = os.path.realpath(settings.MEDIA_ROOT)
+    real_full_dir = os.path.realpath(os.path.dirname(full_path))
+    if not real_full_dir.startswith(real_media_root):
+        from django.core.exceptions import ValidationError
+        raise ValidationError('Invalid file path.')
+
     os.makedirs(os.path.dirname(full_path), exist_ok=True)
 
     with open(full_path, 'wb') as dest:
@@ -45,9 +54,10 @@ def process_vendor_upload(vendor, uploaded_file):
     imported_count = 0
     rejected_count = 0
     rejected_rows = []
-    created_materials = []
 
     file_type = 'CSV' if file_extension == '.csv' else 'XLSX'
+
+    materials_to_create = []
 
     for index, row in df.iterrows():
         is_valid, cleaned, errors = validate_material_row(row, index)
@@ -60,7 +70,7 @@ def process_vendor_upload(vendor, uploaded_file):
             })
             continue
 
-        material = Material.objects.create(
+        materials_to_create.append(Material(
             vendor=vendor,
             material_code=cleaned['material_code'],
             material_name=cleaned['material_name'],
@@ -71,9 +81,17 @@ def process_vendor_upload(vendor, uploaded_file):
             uploaded_file=relative_path,
             file_type=file_type,
             status=Material.PENDING,
-        )
-        created_materials.append(material)
+        ))
         imported_count += 1
+
+    # One batched INSERT instead of one INSERT per row. Measured before
+    # this fix: 5000-row file = 5002 queries, ~85 seconds. bulk_create()
+    # issues a small, fixed number of multi-row INSERT statements
+    # regardless of row count. Material has no custom save() override
+    # and no pre_save/post_save signal handlers (confirmed against the
+    # current model definition), so bulk_create's behavior of skipping
+    # individual save() calls introduces no functional difference here.
+    created_materials = Material.objects.bulk_create(materials_to_create)
 
     UploadBatch.objects.create(
         vendor=vendor,
@@ -114,7 +132,6 @@ def get_vendor_dashboard_stats(vendor):
     }
 
 
-
 def get_upload_trend(vendor, days=14):
     """
     Returns upload counts grouped by day for the last `days` days,
@@ -150,7 +167,6 @@ def get_upload_trend(vendor, days=14):
     return result
 
 
-
 def get_material_status_breakdown(vendor):
     """
     Returns counts of materials by status for the Vendor dashboard's
@@ -166,7 +182,6 @@ def get_material_status_breakdown(vendor):
         {'label': 'Rejected', 'value': materials.filter(status=Material.REJECTED).count()},
     ]
 
-    
 
 def get_upload_history(vendor):
     """

@@ -26,6 +26,7 @@ from .services import (
 from .utils import format_upload_summary
 from .models import VendorProfile
 from apps.purchase.models import Material
+from apps.common.validators import get_safe_page_size, get_safe_days, get_safe_search
 
 
 class VendorRegisterView(APIView):
@@ -48,25 +49,6 @@ class VendorDashboardView(APIView):
     def get(self, request):
         stats = get_vendor_dashboard_stats(request.user)
         return Response({'success': True, 'data': stats}, status=status.HTTP_200_OK)
-
-
-
-class VendorUploadTrendView(APIView):
-    permission_classes = [IsAuthenticated, IsApprovedVendor]
-
-    def get(self, request):
-        days = int(request.query_params.get('days', 14))
-        trend = get_upload_trend(request.user, days=days)
-        return Response({'success': True, 'data': trend}, status=status.HTTP_200_OK)
-
-
-class VendorMaterialStatusView(APIView):
-    permission_classes = [IsAuthenticated, IsApprovedVendor]
-
-    def get(self, request):
-        breakdown = get_material_status_breakdown(request.user)
-        return Response({'success': True, 'data': breakdown}, status=status.HTTP_200_OK)
-    
 
 
 class VendorUploadView(APIView):
@@ -112,7 +94,7 @@ class VendorMaterialsView(APIView):
     def get(self, request):
         queryset = Material.objects.filter(vendor=request.user).order_by('-created_at')
 
-        search = request.query_params.get('search')
+        search = get_safe_search(request)
         if search:
             queryset = queryset.filter(material_name__icontains=search)
 
@@ -126,7 +108,7 @@ class VendorMaterialsView(APIView):
             queryset = queryset.order_by(sort_by)
 
         page_number = request.query_params.get('page', 1)
-        page_size = request.query_params.get('page_size', 20)
+        page_size = get_safe_page_size(request)
         paginator = Paginator(queryset, page_size)
         page_obj = paginator.get_page(page_number)
 
@@ -179,3 +161,20 @@ class VendorProfileView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(VendorProfileSerializer(profile).data, status=status.HTTP_200_OK)
+
+
+class VendorUploadTrendView(APIView):
+    permission_classes = [IsAuthenticated, IsApprovedVendor]
+
+    def get(self, request):
+        days = get_safe_days(request)
+        trend = get_upload_trend(request.user, days=days)
+        return Response({'success': True, 'data': trend}, status=status.HTTP_200_OK)
+
+
+class VendorMaterialStatusView(APIView):
+    permission_classes = [IsAuthenticated, IsApprovedVendor]
+
+    def get(self, request):
+        breakdown = get_material_status_breakdown(request.user)
+        return Response({'success': True, 'data': breakdown}, status=status.HTTP_200_OK)

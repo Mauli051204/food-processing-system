@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.contrib.auth.password_validation import validate_password
 from apps.accounts.models import User, Role
 from .models import VendorProfile, VendorRequest
-from .validators import validate_password_strength
+from .validators import validate_password_strength, validate_phone_number, validate_full_name
 from apps.purchase.models import Material
 
 
@@ -20,10 +20,21 @@ class VendorRegisterSerializer(serializers.Serializer):
             raise serializers.ValidationError('A user with this email already exists.')
         return value.lower()
 
+    def validate_full_name(self, value):
+        try:
+            return validate_full_name(value)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(list(exc.messages)[0] if hasattr(exc, 'messages') else str(exc))
+
     def validate_phone(self, value):
-        if User.objects.filter(phone=value).exists():
+        try:
+            cleaned = validate_phone_number(value)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(list(exc.messages)[0] if hasattr(exc, 'messages') else str(exc))
+
+        if User.objects.filter(phone=cleaned).exists():
             raise serializers.ValidationError('A user with this phone number already exists.')
-        return value
+        return cleaned
 
     def validate_password(self, value):
         try:
