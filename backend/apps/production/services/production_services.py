@@ -12,7 +12,6 @@ from apps.production.crypto import unwrap_aes_key, decrypt_file_to_bytes
 from apps.production.validators import (
     validate_encrypted_file_available,
     validate_no_duplicate_key_request,
-    validate_key_request_approved,
     validate_not_already_decrypted,
 )
 from apps.production.utils import media_path, ensure_dir, build_decrypted_filename

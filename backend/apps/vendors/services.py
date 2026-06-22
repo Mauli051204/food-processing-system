@@ -84,13 +84,7 @@ def process_vendor_upload(vendor, uploaded_file):
         ))
         imported_count += 1
 
-    # One batched INSERT instead of one INSERT per row. Measured before
-    # this fix: 5000-row file = 5002 queries, ~85 seconds. bulk_create()
-    # issues a small, fixed number of multi-row INSERT statements
-    # regardless of row count. Material has no custom save() override
-    # and no pre_save/post_save signal handlers (confirmed against the
-    # current model definition), so bulk_create's behavior of skipping
-    # individual save() calls introduces no functional difference here.
+    
     created_materials = Material.objects.bulk_create(materials_to_create)
 
     UploadBatch.objects.create(

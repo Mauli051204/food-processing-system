@@ -22,7 +22,6 @@ from .serializers import (
 from .services import (
     get_purchase_dashboard_stats,
     get_recent_requests,
-    get_pending_materials_for_vendor,
     edit_material,
     approve_material,
     reject_material,

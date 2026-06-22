@@ -1,8 +1,7 @@
 from rest_framework import serializers
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.contrib.auth.password_validation import validate_password
 from apps.accounts.models import User, Role
-from .models import VendorProfile, VendorRequest
+from .models import VendorProfile
 from .validators import validate_password_strength, validate_phone_number, validate_full_name
 from apps.purchase.models import Material
 

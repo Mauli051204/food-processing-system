@@ -15,7 +15,7 @@ from .serializers import (
     AdminAuditLogSerializer,
     AdminNotificationSerializer,
     SystemSettingSerializer,
-    ApproveRejectActionSerializer,
+    
 )
 from .services import (
     get_admin_dashboard_stats,

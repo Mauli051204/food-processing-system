@@ -7,7 +7,7 @@ from reportlab.pdfgen import canvas
 
 from apps.accounts.models import User
 from apps.vendors.models import VendorProfile
-from apps.purchase.models import Material, ApprovedMaterial, RejectedMaterial
+from apps.purchase.models import Material
 from apps.tech.models import EncryptedFile
 from apps.production.models import DownloadHistory
 from apps.audit.models import AuditLog

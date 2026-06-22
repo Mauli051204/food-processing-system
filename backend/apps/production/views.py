@@ -38,7 +38,6 @@ from .services.key_request_service import (
 )
 from .utils import get_client_ip
 from apps.tech.models import EncryptedFile
-from apps.production.models import KeyRequest
 from apps.common.validators import get_safe_page_size, get_safe_days, get_safe_search
 
 

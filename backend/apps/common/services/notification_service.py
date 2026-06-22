@@ -14,7 +14,7 @@ from django.db.models import QuerySet
 from django.core.paginator import Paginator
 
 from apps.notifications.models import Notification
-from apps.audit.models import AuditLog
+
 
 logger = logging.getLogger('notification_service')
 

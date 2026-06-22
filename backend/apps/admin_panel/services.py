@@ -1,11 +1,8 @@
 from django.db import transaction
-from django.core.exceptions import ValidationError
-from django.utils import timezone
+from apps.accounts.models import User
 
-from apps.accounts.models import User, Role
-from apps.vendors.models import VendorProfile
-from apps.purchase.models import Material, ApprovedMaterial, RejectedMaterial, UploadBatch
-from apps.tech.models import EncryptedFile, AESKey
+from apps.purchase.models import  ApprovedMaterial, RejectedMaterial, UploadBatch
+from apps.tech.models import EncryptedFile
 from apps.production.models import KeyRequest, DownloadHistory
 from apps.audit.models import AuditLog
 from apps.notifications.models import Notification

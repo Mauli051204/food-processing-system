@@ -1,4 +1,3 @@
-import os
 import secrets
 import base64
 from django.conf import settings
